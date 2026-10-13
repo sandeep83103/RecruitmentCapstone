@@ -138,15 +138,67 @@ class DeterministicMockLLM(CrewAIBaseLLM):
         # ----------------------------------------------------------------------
         return self._generate_react_action(user_query)
 
-    def _generate_react_action(self, query: str) -> str:
-        """Generates ReAct action using schema matching."""
+    def _generate_react_action(
+        self,
+        query: str,
+        allowed_tools: Optional[List[str]] = None,
+    ) -> str:
+        """Generates ReAct action using schema matching and agent tool permissions."""
         normalized = query.lower()
 
-        # Check for Application Lookup intent: record_id pattern (e.g., APP-1001)
+        # When agent tool restrictions apply:
+        if allowed_tools is not None:
+            # If agent only has application lookup
+            if "check_job_application_status" in allowed_tools and len(allowed_tools) == 1:
+                record_match = re.search(r"\bAPP-\d{4}\b", query, re.IGNORECASE)
+                if record_match or "status" in normalized or "application" in normalized or "salary" in normalized:
+                    record_id = record_match.group(0).upper() if record_match else "APP-1001"
+                    return (
+                        f"Thought: Query requires candidate application lookup. Executing status retrieval tool.\n"
+                        f"Action: check_job_application_status\n"
+                        f"Action Input: {json.dumps({'record_id': record_id})}"
+                    )
+                return "Thought: No candidate application record requested in query. Skipping application lookup."
+
+            # If agent only has policy RAG tool
+            rag_tools = [t for t in allowed_tools if "rag" in t or "policy" in t]
+            if rag_tools and len(allowed_tools) == len(rag_tools):
+                rag_tool_name = rag_tools[0]
+                # Check if query is strictly a candidate lookup with no policy inquiry
+                record_match = re.search(r"\bAPP-\d{4}\b", query, re.IGNORECASE)
+                has_policy_kw = any(
+                    k in normalized
+                    for k in [
+                        "policy", "probation", "notice", "bonus", "referral", "remote",
+                        "eligibility", "interview", "offer", "transfer", "exit", "criteria",
+                        "verification", "background", "work", "retention", "leave"
+                    ]
+                )
+                if record_match and not has_policy_kw and "check status" in normalized:
+                    return "Thought: Query focuses strictly on candidate record status. No policy lookup required."
+                
+                # In hybrid queries, extract the policy inquiry if an application lookup is mixed in
+                policy_query = query
+                if record_match:
+                    cleaned = re.sub(
+                        r"(?:check|what\s+is)\s+(?:the\s+)?status\s+(?:of\s+)?(?:application\s+)?APP-\d{4}\s+(?:and\s+)?",
+                        "",
+                        query,
+                        flags=re.IGNORECASE,
+                    ).strip()
+                    if cleaned:
+                        policy_query = cleaned
+
+                return (
+                    f"Thought: Query involves recruitment policy inquiry. Retrieving policy excerpts.\n"
+                    f"Action: {rag_tool_name}\n"
+                    f"Action Input: {json.dumps({'query': policy_query})}"
+                )
+
+        # Default unrestricted schema dispatch (used in standalone tests)
         record_match = re.search(r"\bAPP-\d{4}\b", query, re.IGNORECASE)
         if record_match or "status" in normalized or "application" in normalized:
             record_id = record_match.group(0).upper() if record_match else "APP-1001"
-            # Schema dispatch: application lookup requires {'record_id': ...}
             tool_name = self.dispatch_tool_by_schema({"record_id": record_id}) or "check_job_application_status"
             return (
                 f"Thought: The user is requesting application details. I need to check the application status using its record ID.\n"
@@ -154,7 +206,6 @@ class DeterministicMockLLM(CrewAIBaseLLM):
                 f"Action Input: {json.dumps({'record_id': record_id})}"
             )
 
-        # Check for Policy Query intent: requires {'query': ...}
         tool_name = self.dispatch_tool_by_schema({"query": query}) or "rag_policy_lookup"
         return (
             f"Thought: The user is asking a hiring policy question. I need to retrieve relevant policy excerpts from the knowledge base.\n"
@@ -175,8 +226,50 @@ class DeterministicMockLLM(CrewAIBaseLLM):
                         f"Escalation Score: {obs_data.get('escalation_score', 0.0):.2f} (Escalation Recommended: {escalation})."
                     )
                 if "answer" in obs_data:
-                    return str(obs_data["answer"])
+                    sources = obs_data.get("sources", [])
+                    source_str = f" [Sources: {', '.join(sources)}]" if sources else ""
+                    return f"{obs_data['answer']}{source_str}"
         except (json.JSONDecodeError, TypeError):
             pass
 
         return f"Based on verified recruitment records: {observation}"
+
+    def _synthesize_final_composer_answer(
+        self,
+        query: str,
+        previous_context: List[str],
+    ) -> str:
+        """
+        Synthesizes a cohesive, professional candidate-ready final answer
+        from the combined findings of the Retrieval and Lookup agents.
+        """
+        policy_info = ""
+        app_info = ""
+        refusal_found = False
+
+        for item in previous_context:
+            if "I don't have information on this topic" in item:
+                refusal_found = True
+            elif "Recruitment Policy Researcher" in item:
+                # Strip agent tag
+                policy_part = item.split("]:", 1)[-1].strip()
+                if "No policy lookup required" not in policy_part:
+                    policy_info = policy_part
+            elif "Application Records Specialist" in item:
+                app_part = item.split("]:", 1)[-1].strip()
+                if "No candidate application record" not in app_part:
+                    app_info = app_part
+
+        if refusal_found and not app_info:
+            return "I don't have information on this topic in the company recruitment policy."
+
+        sections = []
+        if app_info:
+            sections.append(f"Application Status: {app_info}")
+        if policy_info:
+            sections.append(f"Policy Guidelines: {policy_info}")
+
+        if not sections:
+            return f"Regarding your inquiry '{query}': All standard HR operational processes remain in active review."
+
+        return " ".join(sections)
