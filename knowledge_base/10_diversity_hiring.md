@@ -1,0 +1,3 @@
+# Diversity and Inclusive Hiring Policy
+
+Our hiring philosophy enforces strict equal employment opportunity standards across all talent acquisition workflows regardless of gender, background, or identity. Talent acquisition teams must maintain balanced shortlisting slates and conduct specialized inclusive referral drives across colleges and professional communities. Blind resume screening techniques are utilized during initial rounds to mitigate unconscious bias in technical grading. Every interview loop is mandated to include diverse panel representations to promote equitable assessment outcomes.

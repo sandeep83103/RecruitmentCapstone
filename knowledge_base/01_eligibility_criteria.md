@@ -1,0 +1,3 @@
+# Eligibility Criteria Policy
+
+Candidates applying for full-time engineering and product roles must hold a recognized Bachelor's or Master's degree in Engineering, Computer Applications, or related quantitative disciplines. A minimum aggregate score of 60% or equivalent CGPA throughout academic credentials is mandatory for campus and lateral consideration. Educational career gaps up to a maximum of one calendar year are permitted, provided formal documentation or medical justification is submitted during screening. All certifications and technical degrees are subject to independent validation against national university registries.

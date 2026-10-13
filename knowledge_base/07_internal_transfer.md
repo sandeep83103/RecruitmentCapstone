@@ -1,0 +1,3 @@
+# Internal Job Posting and Transfer Policy
+
+Permanent employees are eligible to apply for Internal Job Postings (IJP) after completing a minimum tenure of 12 consecutive months in their current role. Eligible employees must have maintained a consistent satisfactory performance rating of Meets Expectations or above during their latest appraisal cycle. Prior notification to the current reporting manager is mandatory before advancing to the final interview stage of the new opening. Successful internal transfers take effect within 30 days of official selection to ensure orderly knowledge transition.

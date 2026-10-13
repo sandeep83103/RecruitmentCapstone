@@ -1,0 +1,3 @@
+# Candidate Data Retention Policy
+
+In compliance with data protection standards, all candidate resumes, application notes, and interview feedback records are retained for exactly 180 days from the date of application submission. Candidates may request earlier deletion of their personal profiles and sensitive records by submitting a written request to the privacy office. Following the 180-day retention threshold, candidate records that are not converted to active employees are either securely purged or irreversibly anonymized for analytical reporting. Access to archived applicant archives is strictly role-restricted to authorized talent compliance auditors.
