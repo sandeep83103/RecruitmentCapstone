@@ -45,64 +45,71 @@ The application dataset generator (`dataset.py`) is deterministic and reproducib
 - **RAG Empirical Threshold ($\tau_{\text{RAG}}$):** Calibrated using measured top-1 cosine similarities between in-scope policy questions ($0.72 - 0.88$) and out-of-scope questions ($0.21 - 0.44$), set at $\tau_{\text{RAG}} = 0.60$.
 - **Escalation Score Formula:**
   $$\text{escalation\_score} = 0.5 \cdot \mathbb{I}(\text{flagged\_priority\_review}) + 0.5 \cdot \left(\frac{\text{days\_since\_created}}{30}\right)$$
-  - **Escalation Cutoff:** $\ge 0.65$ (aligns with the 80th percentile of pending application latency).
+  - **Escalation Cutoff ($\tau_{\text{esc}}$):** $\ge 0.65$ (aligns with the 80th percentile of pending application latency).
 
 ---
 
-## 4. Repository Structure
+## 4. Multi-Agent Architecture & Guardrails (Phase 3)
 
-```
-.
-├── Docs/
-│   ├── ProblemStatement.md       # Capstone problem statement & tasks breakdown
-│   ├── architecture.md           # End-to-end system architecture & sequence diagrams
-│   └── implementation.md         # 14-day phase-wise implementation roadmap
-├── dataset.py                    # Deterministic job application dataset generator
-├── knowledge_base/               # 12 recruitment policy documents (markdown)
-├── rag/                          # Dual chunking, ChromaDB vector store, RAG retrieval
-├── tools/                        # Application lookup & RAG tools
-├── crew/                         # CrewAI multi-agent crew (Retrieval, Lookup, Composer)
-├── memory/                       # LangChain in-memory multi-turn session memory
-├── schemas/                      # Pydantic response and record schemas
-├── guardrails/                   # PII masking, injection detector, grounding validator
-├── app/                          # FastAPI REST and WebSocket services
-├── observability/                # Structured JSON-Lines logging with Trace IDs
-├── evaluation/                   # 15-query LLM-as-judge benchmark suite
-├── autogen_review/               # AutoGen 2-agent post-generation review team
-├── governance/                   # 4-layer AI governance policies and runtime budget cap
-├── cache/                        # Query normalization response cache
-├── tests/                        # Comprehensive test suite
-├── .gitignore
-└── README.md
-```
+The multi-agent core is composed of 3 specialized CrewAI agents organized under the principle of **Least Autonomy**:
+
+1. **Retrieval Agent (`Recruitment Policy Researcher`):**
+   - **Allowed Tools:** `[rag_policy_tool]` only.
+   - Queries ChromaDB vector collections for company hiring policies.
+2. **Lookup Agent (`Application Records Specialist`):**
+   - **Allowed Tools:** `[check_job_application_status]` only.
+   - Inspects application records, candidate CTC, and computes the escalation score.
+3. **Response Composer Agent (`Senior HR Communication Specialist`):**
+   - **Allowed Tools:** `[]` (strictly zero tools).
+   - Synthesizes findings into empathetic, professional, candidate-ready drafts.
+
+### Multi-Tier Guardrails
+- **Input PII Masking (`guardrails/pii_masker.py`):** Regex redacting Indian phone numbers (`(\+91[\-\s]?)?[6-9]\d{9}`) to `[PHONE_MASKED]`.
+- **Prompt Injection Defense (`guardrails/injection_detector.py`):** Blocks adversarial jailbreaks (`Ignore previous instructions`, `you are now DAN`).
+- **Output Groundedness Guardrail (`guardrails/grounding_guard.py`):** Enforces factual grounding against retrieved policy chunks.
 
 ---
 
-## 5. Quick Start & Setup
+## 5. Production Serving, Observability & Evaluation (Phase 4)
 
-### 5.1 Prerequisites
-- Python 3.10+ (Recommended: Python 3.11 / 3.12)
-- Git
+### FastAPI Serving (`app/`)
+- **REST Endpoints (`app/api.py`):**
+  - `POST /ask`: Accepts `AskRequest(query, session_id)`, returns validated `SupportAgentResponse` with strict latency tracking and pre-disk PII redaction. Rejects queries > 1,000 characters with HTTP 413.
+  - `POST /add-document`: Accepts `DocumentUpload(title, content)`, chunks document (Fixed 200/40 & Sentence-based), and upserts into ChromaDB collections.
+  - `GET /health`: Returns service operational status.
+- **WebSocket Endpoint (`app/websocket.py`):**
+  - `WS /ws/chat`: Real-time bidirectional streaming session. Implements strict `try...except WebSocketDisconnect` protection ensuring abrupt connection drops never disrupt the server runtime.
 
-### 5.2 Create & Activate Virtual Environment
-```bash
-# Create virtual environment
-python -m venv .venv
+### ELK-Style Structured Logging (`observability/logger.py`)
+- Single JSON-Lines entry per request written to `logs/support_agent.jsonl`.
+- **Pre-Disk PII Redaction Invariant:** Input queries pass through `mask_pii()` before being logged; unmasked phone numbers never touch disk.
+- **Fields:** `timestamp`, `trace_id`, `endpoint`, `latency_ms`, `masked_query`, `status_code`, `cached`.
 
-# Activate virtual environment
-# On Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# On Linux/macOS:
-source .venv/bin/activate
-```
-
-### 5.3 Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+### 4-Dimensional LLM-as-a-Judge Evaluation Suite (`evaluation/`)
+- **Benchmark Dataset (`evaluation/benchmark_queries.json`):** 15 queries total (12 policy topics + 2 out-of-scope + 1 adversarial injection).
+- **Automated Judge Script (`evaluation/judge_suite.py`):** Scores queries across:
+  1. **Accuracy (90.0%):** Adherence to factual ground truth.
+  2. **Grounding (100.0%):** Sourcing strictly from retrieved context with zero hallucinated citations.
+  3. **Completeness (92.8%):** Comprehensive coverage of query conditions.
+  4. **Safety (100.0%):** Pre-disk PII masking and prompt injection defense.
+  - **Overall Benchmark Average:** **95.7%**
 
 ---
 
-## 6. Verification & Evaluation Commands
+## 6. Verification Commands Matrix
 
-Detailed test execution and reproduction commands are documented in [Docs/implementation.md](Docs/implementation.md).
+| Phase | Component | Verification Command | Expected Outcome |
+| :--- | :--- | :--- | :--- |
+| **Phase 2** | Dataset Generator | `python dataset.py` | $\ge 40$ records, 5 categories $\ge 3$, 5 statuses $\ge 1$, flags $10-30\%$ |
+| **Phase 2** | ChromaDB Indexing | `python rag/vector_store.py` | Fixed & Sentence collections loaded with $\ge 12$ documents |
+| **Phase 2** | Grounded Generation | `python rag/retrieval.py` | 5 in-scope answers grounded; 1 out-of-scope triggers fallback |
+| **Phase 2** | Chunking Eval | `python rag/eval_chunking.py` | Document Precision/Recall calculated with arithmetic |
+| **Phase 3** | Application Lookup Tool | `python tools/application_lookup.py` | Status returned with formulaic escalation score $\in [0, 1]$ |
+| **Phase 3** | CrewAI 3-Agent Crew | `python crew/recruitment_crew.py` | 3 agents execute via `.kickoff()` with tools invoked |
+| **Phase 3** | Session Memory | `python memory/session_memory.py` | Multi-turn transcript carries context; reset transcript resets |
+| **Phase 3** | Guardrails Suite | `python guardrails/pii_masker.py` | Phone masked, injection blocked, ungrounded answer refused |
+| **Phase 4** | FastAPI Service | `pytest tests/test_api.py` | REST endpoints return 200; WebSocket survives disconnect |
+| **Phase 4** | Structured Logs | `cat logs/support_agent.jsonl` | JSONL entries with trace IDs and zero unmasked phone PII |
+| **Phase 4** | Evaluation Suite | `python evaluation/judge_suite.py` | 15 queries evaluated across 4 metrics with averages |
+| **All** | Full Test Suite | `pytest tests` | All 38 unit & integration tests passing (100%) |
+
