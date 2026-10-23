@@ -25,7 +25,7 @@ from rag.retrieval import FALLBACK_REFUSAL_MESSAGE
 
 # Regex pattern targeting 10-digit Indian phone numbers with optional +91, 91 prefix, spaces, or hyphens
 INDIAN_PHONE_REGEX = re.compile(
-    r"(?:\+91[\-\s]?|91[\-\s]?|[0]?)?[6-9]\d{9}\b"
+    r"(?<!\w)(?:\+91[\-\s]?|91[\-\s]?|[0]?)?[6-9]\d{9}\b"
 )
 MASK_REPLACEMENT = "[PHONE_MASKED]"
 

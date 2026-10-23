@@ -44,6 +44,9 @@ from rag.vector_store import (
 )
 from observability.logger import log_request, read_logs, verify_no_unmasked_phone_pii
 from app.websocket import router as websocket_router
+from governance.budget_controller import validate_runtime_budget
+from cache.response_cache import GLOBAL_RESPONSE_CACHE, normalize_query
+from autogen_review.review_team import review_support_response
 
 
 # Initialize FastAPI App
@@ -110,8 +113,9 @@ def ask_question(request: AskRequest) -> SupportAgentResponse:
     trace_id = str(uuid.uuid4())
     raw_query = request.query.strip()
 
-    # Governance: Runtime Budget Limit (1,000 chars max)
-    if len(raw_query) > config.MAX_QUERY_CHARACTER_LIMIT:
+    # Governance Layer 2: Runtime Budget Limit (1,000 chars max)
+    is_budget_valid, budget_err = validate_runtime_budget(raw_query)
+    if not is_budget_valid:
         latency_ms = (time.perf_counter() - start_time) * 1000
         log_request(
             trace_id=trace_id,
@@ -123,10 +127,7 @@ def ask_question(request: AskRequest) -> SupportAgentResponse:
         )
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=(
-                f"Query length ({len(raw_query)} chars) exceeds maximum allowed "
-                f"runtime budget of {config.MAX_QUERY_CHARACTER_LIMIT} characters."
-            ),
+            detail=budget_err,
         )
 
     # Security: Prompt Injection Guardrail
@@ -150,7 +151,28 @@ def ask_question(request: AskRequest) -> SupportAgentResponse:
             escalation_recommended=False,
             review_status="refused",
             trace_id=trace_id,
+            cached=False,
+            latency_ms=latency_ms,
         )
+
+    # Governance Layer 2: Normalized Response Cache Fast-Path (standalone inquiries)
+    if not request.session_id:
+        cached_resp = GLOBAL_RESPONSE_CACHE.get(raw_query)
+        if cached_resp is not None:
+            latency_ms = (time.perf_counter() - start_time) * 1000
+            cached_resp.trace_id = trace_id
+            cached_resp.cached = True
+            cached_resp.latency_ms = latency_ms
+            log_request(
+                trace_id=trace_id,
+                endpoint="/ask",
+                latency_ms=latency_ms,
+                query=raw_query,
+                status_code=200,
+                cached=True,
+                extra={"intent": cached_resp.intent, "cache": "hit"},
+            )
+            return cached_resp
 
     # Multi-turn Coreference Resolution
     effective_query = raw_query
@@ -183,6 +205,8 @@ def ask_question(request: AskRequest) -> SupportAgentResponse:
                 escalation_recommended=False,
                 review_status="approved",
                 trace_id=trace_id,
+                cached=False,
+                latency_ms=latency_ms,
             )
         effective_query = resolved_q
 
@@ -191,12 +215,33 @@ def ask_question(request: AskRequest) -> SupportAgentResponse:
     response.trace_id = trace_id
     response.query = raw_query  # Keep original user query in top-level field
 
+    # Governance Layer 3: AutoGen Multi-Agent Secondary Review Stage
+    if response.intent != "out_of_scope":
+        verdict = review_support_response(
+            draft_answer=response.final_answer,
+            context=response.sources,
+            query=effective_query,
+        )
+        if not verdict.approved:
+            response.final_answer = verdict.final_answer
+            response.review_status = "revised_by_audit"
+        else:
+            response.review_status = "approved"
+        response.audit_reason = verdict.reason
+
     # Update session memory
     if request.session_id:
         GLOBAL_SESSION_MANAGER.add_user_turn(request.session_id, raw_query)
         GLOBAL_SESSION_MANAGER.add_ai_turn(request.session_id, response.final_answer)
 
     latency_ms = (time.perf_counter() - start_time) * 1000
+    response.latency_ms = latency_ms
+    response.cached = False
+
+    # Store in normalized response cache
+    if not request.session_id:
+        GLOBAL_RESPONSE_CACHE.set(raw_query, response)
+
     log_request(
         trace_id=trace_id,
         endpoint="/ask",
@@ -204,7 +249,7 @@ def ask_question(request: AskRequest) -> SupportAgentResponse:
         query=raw_query,
         status_code=200,
         cached=False,
-        extra={"intent": response.intent},
+        extra={"intent": response.intent, "review_status": response.review_status},
     )
 
     return response
@@ -342,3 +387,17 @@ def get_recent_logs(limit: int = 50) -> Dict[str, Any]:
         "logs": entries,
         "zero_unmasked_pii": verify_no_unmasked_phone_pii(),
     }
+
+
+@app.get("/cache/stats", tags=["Observability"])
+def get_cache_statistics() -> Dict[str, Any]:
+    """Retrieves runtime statistics for the normalized response cache."""
+    return GLOBAL_RESPONSE_CACHE.stats()
+
+
+@app.post("/cache/clear", tags=["Administration"])
+def clear_response_cache() -> Dict[str, Any]:
+    """Clears the normalized in-memory response cache."""
+    GLOBAL_RESPONSE_CACHE.clear()
+    return {"status": "success", "message": "Normalized response cache cleared successfully."}
+

@@ -33,6 +33,9 @@ from memory.session_memory import GLOBAL_SESSION_MANAGER
 from crew.recruitment_crew import run_recruitment_crew, classify_query_intent
 from schemas.response_models import SupportAgentResponse, create_support_agent_response
 from observability.logger import log_request
+from governance.budget_controller import validate_runtime_budget
+from cache.response_cache import GLOBAL_RESPONSE_CACHE
+from autogen_review.review_team import review_support_response
 
 logger = logging.getLogger("app.websocket")
 router = APIRouter()
@@ -107,8 +110,9 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                 })
                 continue
 
-            # Governance Constraint: Max 1,000 character limit (HTTP 413 equivalent)
-            if len(query) > config.MAX_QUERY_CHARACTER_LIMIT:
+            # Governance Layer 2: Runtime Budget Limit (1,000 chars max)
+            is_budget_valid, budget_err = validate_runtime_budget(query)
+            if not is_budget_valid:
                 latency_ms = (time.perf_counter() - start_time) * 1000
                 log_request(
                     trace_id=current_trace,
@@ -121,7 +125,7 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                 await websocket.send_json({
                     "event": "error",
                     "status_code": 413,
-                    "message": f"Query length ({len(query)}) exceeds maximum limit of {config.MAX_QUERY_CHARACTER_LIMIT} characters.",
+                    "message": budget_err,
                 })
                 continue
 
@@ -132,7 +136,7 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                 "session_id": session_id,
             })
 
-            # Check prompt injection
+            # Security: Prompt injection check
             is_injection, matched_pattern = detect_prompt_injection(query)
             if is_injection:
                 latency_ms = (time.perf_counter() - start_time) * 1000
@@ -153,6 +157,8 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                     escalation_recommended=False,
                     review_status="refused",
                     trace_id=current_trace,
+                    cached=False,
+                    latency_ms=latency_ms,
                 )
                 await websocket.send_json({
                     "event": "chunk",
@@ -163,6 +169,41 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                     "response": refusal_resp.model_dump(),
                 })
                 continue
+
+            # Governance Layer 2: Normalized Cache Fast-Path (standalone inquiries)
+            if not session_id:
+                cached_obj = GLOBAL_RESPONSE_CACHE.get(query)
+                if cached_obj is not None:
+                    latency_ms = (time.perf_counter() - start_time) * 1000
+                    cached_obj.trace_id = current_trace
+                    cached_obj.cached = True
+                    cached_obj.latency_ms = latency_ms
+
+                    log_request(
+                        trace_id=current_trace,
+                        endpoint="/ws/chat",
+                        latency_ms=latency_ms,
+                        query=query,
+                        status_code=200,
+                        cached=True,
+                        extra={"intent": cached_obj.intent, "cache": "hit"},
+                    )
+
+                    words = cached_obj.final_answer.split(" ")
+                    chunk_size = 5
+                    for i in range(0, len(words), chunk_size):
+                        chunk = " ".join(words[i:i + chunk_size]) + " "
+                        await websocket.send_json({
+                            "event": "chunk",
+                            "chunk": chunk,
+                        })
+                        await asyncio.sleep(0.005)
+
+                    await websocket.send_json({
+                        "event": "complete",
+                        "response": cached_obj.model_dump(),
+                    })
+                    continue
 
             # Multi-turn session memory resolution
             effective_query = query
@@ -192,6 +233,8 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                         escalation_recommended=False,
                         review_status="approved",
                         trace_id=current_trace,
+                        cached=False,
+                        latency_ms=latency_ms,
                     )
                     await websocket.send_json({
                         "event": "chunk",
@@ -209,6 +252,20 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
             response_obj.trace_id = current_trace
             response_obj.query = query
 
+            # Governance Layer 3: AutoGen Multi-Agent Secondary Review Stage
+            if response_obj.intent != "out_of_scope":
+                verdict = review_support_response(
+                    draft_answer=response_obj.final_answer,
+                    context=response_obj.sources,
+                    query=effective_query,
+                )
+                if not verdict.approved:
+                    response_obj.final_answer = verdict.final_answer
+                    response_obj.review_status = "revised_by_audit"
+                else:
+                    response_obj.review_status = "approved"
+                response_obj.audit_reason = verdict.reason
+
             if session_id:
                 GLOBAL_SESSION_MANAGER.add_user_turn(session_id, query)
                 GLOBAL_SESSION_MANAGER.add_ai_turn(session_id, response_obj.final_answer)
@@ -225,6 +282,13 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                 await asyncio.sleep(0.01)
 
             latency_ms = (time.perf_counter() - start_time) * 1000
+            response_obj.latency_ms = latency_ms
+            response_obj.cached = False
+
+            # Store in normalized response cache
+            if not session_id:
+                GLOBAL_RESPONSE_CACHE.set(query, response_obj)
+
             log_request(
                 trace_id=current_trace,
                 endpoint="/ws/chat",
@@ -232,6 +296,7 @@ async def websocket_chat_endpoint(websocket: WebSocket) -> None:
                 query=query,
                 status_code=200,
                 cached=False,
+                extra={"intent": response_obj.intent, "review_status": response_obj.review_status},
             )
 
             # Emit completion event with validated structured model

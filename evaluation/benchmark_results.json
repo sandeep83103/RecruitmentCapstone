@@ -12,7 +12,7 @@
       "id": "Q01",
       "category": "policy",
       "query": "What are the eligibility criteria and allowed educational gap years for engineering candidates?",
-      "latency_ms": 39.3,
+      "latency_ms": 37.66,
       "response": {
         "intent": "hybrid",
         "sources": [
@@ -34,7 +34,7 @@
       "id": "Q02",
       "category": "policy",
       "query": "Candidate at +91 9876543210 needs to know: what is the minimum advance notice required to schedule an interview and how many times can it be rescheduled?",
-      "latency_ms": 43.56,
+      "latency_ms": 43.8,
       "response": {
         "intent": "hybrid",
         "sources": [
@@ -56,7 +56,7 @@
       "id": "Q03",
       "category": "policy",
       "query": "What is the decision window for candidate offer acceptance and signing?",
-      "latency_ms": 41.09,
+      "latency_ms": 44.04,
       "response": {
         "intent": "hybrid",
         "sources": [
@@ -78,7 +78,7 @@
       "id": "Q04",
       "category": "policy",
       "query": "What are the requirements for background verification and what credentials are investigated?",
-      "latency_ms": 41.54,
+      "latency_ms": 42.87,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -100,7 +100,7 @@
       "id": "Q05",
       "category": "policy",
       "query": "What are the notice period duration norms and buyout terms for departing employees?",
-      "latency_ms": 40.0,
+      "latency_ms": 36.55,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -122,7 +122,7 @@
       "id": "Q06",
       "category": "policy",
       "query": "How is the employee referral bonus paid out across employment milestones?",
-      "latency_ms": 54.19,
+      "latency_ms": 37.9,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -144,7 +144,7 @@
       "id": "Q07",
       "category": "policy",
       "query": "What is the minimum tenure required in a role before applying for an internal transfer (IJP)?",
-      "latency_ms": 45.48,
+      "latency_ms": 35.5,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -166,7 +166,7 @@
       "id": "Q08",
       "category": "policy",
       "query": "What is the standard probation duration and review period for all new hires?",
-      "latency_ms": 36.78,
+      "latency_ms": 32.61,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -188,7 +188,7 @@
       "id": "Q09",
       "category": "policy",
       "query": "What is the company remote work policy and how many days are employees permitted to work from home?",
-      "latency_ms": 27.29,
+      "latency_ms": 66.56,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -210,7 +210,7 @@
       "id": "Q10",
       "category": "policy",
       "query": "Explain the diversity hiring policy and equal employment opportunity standards.",
-      "latency_ms": 27.73,
+      "latency_ms": 46.81,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -232,7 +232,7 @@
       "id": "Q11",
       "category": "policy",
       "query": "Is an exit interview mandatory for resigning employees and when does final settlement take place?",
-      "latency_ms": 28.38,
+      "latency_ms": 41.63,
       "response": {
         "intent": "policy_query",
         "sources": [
@@ -254,7 +254,7 @@
       "id": "Q12",
       "category": "policy",
       "query": "How long are candidate resumes, interview notes, and application records retained in the database?",
-      "latency_ms": 26.19,
+      "latency_ms": 29.43,
       "response": {
         "intent": "hybrid",
         "sources": [
@@ -277,7 +277,7 @@
       "id": "Q13",
       "category": "out_of_scope",
       "query": "What is the current stock price and market capitalization of Google and Apple?",
-      "latency_ms": 30.52,
+      "latency_ms": 26.71,
       "response": {
         "intent": "out_of_scope",
         "sources": [],
@@ -297,7 +297,7 @@
       "id": "Q14",
       "category": "out_of_scope",
       "query": "Can you provide a step-by-step recipe for baking a chocolate cake at home?",
-      "latency_ms": 27.79,
+      "latency_ms": 30.94,
       "response": {
         "intent": "out_of_scope",
         "sources": [],

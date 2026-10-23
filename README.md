@@ -96,7 +96,44 @@ The multi-agent core is composed of 3 specialized CrewAI agents organized under 
 
 ---
 
-## 6. Verification Commands Matrix
+## 6. Resilience, AI Governance & Response Caching (Phase 5)
+
+### AutoGen Secondary Review Stage (`autogen_review/`)
+- **Review Team (`autogen_review/review_team.py`):** Independent 2-agent `RoundRobinGroupChat` (`max_turns=2`):
+  1. `PolicyComplianceReviewer`: Audits CrewAI draft responses against ground-truth policy documents and compensation bands.
+  2. `FinalEditor`: Enforces tone, excises ungrounded claims, and emits a validated Pydantic verdict.
+- **Structured Message Type Registration:** Constructed with `custom_message_types=[StructuredMessage[ReviewVerdict]]` to strictly prevent runtime `ValueError`.
+- **Verdict Contract:**
+  ```python
+  class ReviewVerdict(BaseModel):
+      approved: bool
+      final_answer: str
+      reason: str
+  ```
+- **Auditing Invariants:**
+  - Standard factual drafts are approved without modification (`approved: true`).
+  - Hallucinated policy assertions (e.g., unauthorized notice buyouts, fabricated bonuses) are caught, flagged, and actively rewritten (`approved: false`, `review_status: revised_by_audit`).
+
+### Four-Layer AI Governance Model (`governance/`)
+- **Layer 1: Application Layer (Least Autonomy & Risk Classification):**
+  - Tool access is isolated: `check_job_application_status` is strictly bound to the Application Records Specialist. Attempting to assign it to Retrieval or Composer agents raises `PermissionError`.
+  - Classified as **Medium-to-High Risk** due to financial salary benchmarks (3.5 to 45 LPA) and automated escalation scoring.
+- **Layer 2: Runtime & Cost Layer (Budget Caps & Response Caching):**
+  - Hard character ceiling of $\le 1,000$ characters (`governance/budget_controller.py`). Oversized queries rejected with HTTP 413.
+  - In-memory thread-safe normalized LRU cache (`cache/response_cache.py`). Eliminates redundant multi-agent invocations on repeated queries.
+- **Layer 3: Verification & Alignment Layer:**
+  - Dual-stage auditing (CrewAI Composer $\rightarrow$ AutoGen Editor) with empirical cosine cutoff ($\tau_{\text{RAG}} = 0.60$).
+- **Layer 4: Data & Compliance Layer:**
+  - Zero-cleartext logging of Indian phone numbers with immutable JSONL audit trails.
+
+### Normalized Query Response Cache (`cache/`)
+- **Normalization Invariant (`cache/response_cache.py`):**
+  - Lowercasing, trailing punctuation removal, and repeated whitespace collapsing (`normalize_query()`).
+  - Speedup: Sub-millisecond cache hits ($< 0.1 \text{ ms}$) achieving $> 400,000\times$ latency reduction compared to cold multi-agent runs.
+
+---
+
+## 7. Verification Commands Matrix
 
 | Phase | Component | Verification Command | Expected Outcome |
 | :--- | :--- | :--- | :--- |
@@ -111,5 +148,10 @@ The multi-agent core is composed of 3 specialized CrewAI agents organized under 
 | **Phase 4** | FastAPI Service | `pytest tests/test_api.py` | REST endpoints return 200; WebSocket survives disconnect |
 | **Phase 4** | Structured Logs | `cat logs/support_agent.jsonl` | JSONL entries with trace IDs and zero unmasked phone PII |
 | **Phase 4** | Evaluation Suite | `python evaluation/judge_suite.py` | 15 queries evaluated across 4 metrics with averages |
-| **All** | Full Test Suite | `pytest tests` | All 38 unit & integration tests passing (100%) |
+| **Phase 5** | AutoGen Review Team | `python autogen_review/review_team.py` | Approved clean demo + Hallucination revised demo |
+| **Phase 5** | Governance Budget Cap | `python governance/budget_controller.py` | Oversized prompt rejected under runtime cap (HTTP 413) |
+| **Phase 5** | Least Autonomy Check | `python governance/least_autonomy_validator.py` | Proves tool isolation raises `PermissionError` on violation |
+| **Phase 5** | Response Cache Engine | `python cache/response_cache.py` | Hit verified with call counter & latency drop |
+| **All** | Full Test Suite | `pytest tests` | All 48 unit & integration tests passing (100%) |
+
 

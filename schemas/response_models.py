@@ -42,6 +42,18 @@ class SupportAgentResponse(BaseModel):
         default="approved",
         description="Quality and compliance audit status (e.g., 'approved', 'revised', 'refused').",
     )
+    cached: bool = Field(
+        default=False,
+        description="Flag indicating if response was served from normalized in-memory cache.",
+    )
+    latency_ms: Optional[float] = Field(
+        default=None,
+        description="Total response latency in milliseconds.",
+    )
+    audit_reason: Optional[str] = Field(
+        default=None,
+        description="Compliance audit reason from AutoGen secondary review stage.",
+    )
 
     @field_validator("trace_id")
     @classmethod
@@ -71,6 +83,9 @@ def create_support_agent_response(
     escalation_recommended: bool = False,
     review_status: str = "approved",
     trace_id: Optional[str] = None,
+    cached: bool = False,
+    latency_ms: Optional[float] = None,
+    audit_reason: Optional[str] = None,
 ) -> SupportAgentResponse:
     """Helper factory for instantiating and validating SupportAgentResponse instances."""
     return SupportAgentResponse(
@@ -81,4 +96,7 @@ def create_support_agent_response(
         sources=sources or [],
         escalation_recommended=escalation_recommended,
         review_status=review_status,
+        cached=cached,
+        latency_ms=latency_ms,
+        audit_reason=audit_reason,
     )
