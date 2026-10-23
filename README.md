@@ -26,6 +26,7 @@ An enterprise-grade, deterministic multi-agent support agent designed for **Nauk
 11. [4-Dimensional Evaluation Suite](#11-4-dimensional-evaluation-suite)
 12. [Complete Verification Matrix](#12-complete-verification-matrix)
 13. [Installation & Execution Guide](#13-installation--execution-guide)
+14. [Step-by-Step Usage Guide](usageguide.md)
 
 ---
 
@@ -455,6 +456,9 @@ uvicorn app.api:app --host 127.0.0.1 --port 8000 --reload
 ```
 Interactive Swagger API documentation will be available at:
 `http://127.0.0.1:8000/docs`
+
+> [!TIP]
+> For in-depth instructions, standalone verification scripts, WebSocket streaming client code, and cURL examples, refer to the [Step-by-Step Usage Guide](usageguide.md).
 
 ---
 
