@@ -30,11 +30,14 @@ from tools.policy_rag_tool import rag_policy_tool, rag_policy_lookup
 from schemas.response_models import SupportAgentResponse, create_support_agent_response
 
 # Standard CrewAI abstraction import with offline compatibility fallback
-try:
-    from crewai import Agent, Task, Crew, Process
-    from crewai.tools import tool
-except (ImportError, ModuleNotFoundError):
+if config.MOCK_LLM_ENABLED:
     from crew.crewai_compat import Agent, Task, Crew, Process, tool
+else:
+    try:
+        from crewai import Agent, Task, Crew, Process
+        from crewai.tools import tool
+    except (ImportError, ModuleNotFoundError):
+        from crew.crewai_compat import Agent, Task, Crew, Process, tool
 
 
 def build_recruitment_crew(

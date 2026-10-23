@@ -20,10 +20,9 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional, Union
 
-# Attempt import from real crewai if available, otherwise use compliant protocol
-try:
-    from crewai.llms.base_llm import BaseLLM as CrewAIBaseLLM
-except (ImportError, ModuleNotFoundError):
+import config
+
+if config.MOCK_LLM_ENABLED:
     class CrewAIBaseLLM(ABC):
         """Standard CrewAI BaseLLM abstraction for offline execution."""
         
@@ -34,6 +33,20 @@ except (ImportError, ModuleNotFoundError):
         def call(self, messages: Union[str, List[Dict[str, str]]]) -> str:
             """Execute LLM generation call."""
             pass
+else:
+    try:
+        from crewai.llms.base_llm import BaseLLM as CrewAIBaseLLM
+    except (ImportError, ModuleNotFoundError):
+        class CrewAIBaseLLM(ABC):
+            """Standard CrewAI BaseLLM abstraction for offline execution."""
+            
+            def __init__(self, model_name: str = "mock-deterministic-llm"):
+                self.model_name = model_name
+
+            @abstractmethod
+            def call(self, messages: Union[str, List[Dict[str, str]]]) -> str:
+                """Execute LLM generation call."""
+                pass
 
 
 class DeterministicMockLLM(CrewAIBaseLLM):

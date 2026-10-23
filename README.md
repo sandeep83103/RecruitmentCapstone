@@ -450,7 +450,13 @@ pip install -r requirements.txt
 pytest tests -v
 ```
 
-### 5. Launch the FastAPI Server
+### 5. Launch the Interactive Console CLI (Direct User Interaction)
+```bash
+python cli.py
+```
+*Allows immediate testing of policy questions, candidate application lookups, and multi-turn follow-ups directly in your terminal.*
+
+### 6. Launch the FastAPI Production Server
 ```bash
 uvicorn app.api:app --host 127.0.0.1 --port 8000 --reload
 ```
@@ -458,7 +464,7 @@ Interactive Swagger API documentation will be available at:
 `http://127.0.0.1:8000/docs`
 
 > [!TIP]
-> For in-depth instructions, standalone verification scripts, WebSocket streaming client code, and cURL examples, refer to the [Step-by-Step Usage Guide](usageguide.md).
+> For complete user input specifications, master sample input catalog across all 12 policies, standalone verification scripts, WebSocket streaming client code, and cURL examples, refer to the [Step-by-Step Usage Guide](usageguide.md).
 
 ---
 
