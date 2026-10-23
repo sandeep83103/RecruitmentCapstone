@@ -458,10 +458,40 @@ Once running, interactive documentation is available in your browser:
 
 ---
 
-## 8. Interacting with the REST API (curl & Python)
+## 8. Interacting with the REST API (curl, PowerShell & Python)
+
+> [!IMPORTANT]
+> **Ensure the FastAPI Server is Running:** Before executing any REST or WebSocket calls, start the server in a separate terminal:
+> ```bash
+> uvicorn app.api:app --host 127.0.0.1 --port 8000 --reload
+> ```
+
+> [!TIP]
+> **Windows PowerShell Users (`curl` vs `curl.exe`):**
+> In Windows PowerShell, typing `curl` invokes the PowerShell alias `Invoke-WebRequest`, which does not accept `-X`. To run curl in PowerShell, always specify **`curl.exe`** or use PowerShell's native **`Invoke-RestMethod`**!
+>
+> ```powershell
+> # Option 1: Use curl.exe directly
+> curl.exe -X GET http://127.0.0.1:8000/health
+>
+> # Option 2: Use native PowerShell cmdlet (no curl needed)
+> Invoke-RestMethod -Uri http://127.0.0.1:8000/health -Method Get
+>
+> # Option 3: Remove the alias for your current session
+> Remove-Item alias:curl
+> ```
 
 ### 8.1 Service Health Check (`GET /health`)
 Check service operational status:
+
+#### On Windows (PowerShell):
+```powershell
+curl.exe http://127.0.0.1:8000/health
+# Or:
+Invoke-RestMethod http://127.0.0.1:8000/health
+```
+
+#### On Linux / macOS / Git Bash:
 ```bash
 curl -X GET http://127.0.0.1:8000/health
 ```
@@ -480,10 +510,21 @@ curl -X GET http://127.0.0.1:8000/health
 
 ### 8.2 Asking a Recruitment Policy Question (`POST /ask`)
 Inquire about probation period, notice period, or internal transfers:
+
+#### On Windows (PowerShell):
+```powershell
+# Using Invoke-RestMethod:
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/ask" -Method Post -ContentType "application/json" -Body '{"query": "What is the standard probation period duration and review timeline?"}'
+
+# Or using curl.exe:
+curl.exe -X POST http://127.0.0.1:8000/ask -H "Content-Type: application/json" -d "{\"query\": \"What is the standard probation period duration and review timeline?\"}"
+```
+
+#### On Linux / macOS / Git Bash:
 ```bash
 curl -X POST http://127.0.0.1:8000/ask \
   -H "Content-Type: application/json" \
-  -d "{\"query\": \"What is the standard probation period duration and review timeline?\"}"
+  -d '{"query": "What is the standard probation period duration and review timeline?"}'
 ```
 **Response:**
 ```json
@@ -507,10 +548,21 @@ curl -X POST http://127.0.0.1:8000/ask \
 
 ### 8.3 Candidate Application Status Lookup (`POST /ask`)
 Lookup an existing job application (e.g., `APP-1001` or `APP-1011`):
+
+#### On Windows (PowerShell):
+```powershell
+# Using Invoke-RestMethod:
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/ask" -Method Post -ContentType "application/json" -Body '{"query": "Please check the status of candidate application APP-1011."}'
+
+# Or using curl.exe:
+curl.exe -X POST http://127.0.0.1:8000/ask -H "Content-Type: application/json" -d "{\"query\": \"Please check the status of candidate application APP-1011.\"}"
+```
+
+#### On Linux / macOS / Git Bash:
 ```bash
 curl -X POST http://127.0.0.1:8000/ask \
   -H "Content-Type: application/json" \
-  -d "{\"query\": \"Please check the status of candidate application APP-1011.\"}"
+  -d '{"query": "Please check the status of candidate application APP-1011."}'
 ```
 **Response:**
 ```json
@@ -536,17 +588,21 @@ curl -X POST http://127.0.0.1:8000/ask \
 Provide a `session_id` to maintain conversation memory across turns:
 
 #### Turn 1:
-```bash
-curl -X POST http://127.0.0.1:8000/ask \
-  -H "Content-Type: application/json" \
-  -d "{\"query\": \"Check status of application APP-1001.\", \"session_id\": \"recruiter_alice\"}"
+```powershell
+# Windows PowerShell:
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/ask" -Method Post -ContentType "application/json" -Body '{"query": "Check status of application APP-1001.", "session_id": "recruiter_alice"}'
+
+# Linux / macOS / Git Bash:
+curl -X POST http://127.0.0.1:8000/ask -H "Content-Type: application/json" -d '{"query": "Check status of application APP-1001.", "session_id": "recruiter_alice"}'
 ```
 
 #### Turn 2 (Pronoun Resolution):
-```bash
-curl -X POST http://127.0.0.1:8000/ask \
-  -H "Content-Type: application/json" \
-  -d "{\"query\": \"What was its expected salary?\", \"session_id\": \"recruiter_alice\"}"
+```powershell
+# Windows PowerShell:
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/ask" -Method Post -ContentType "application/json" -Body '{"query": "What was its expected salary?", "session_id": "recruiter_alice"}'
+
+# Linux / macOS / Git Bash:
+curl -X POST http://127.0.0.1:8000/ask -H "Content-Type: application/json" -d '{"query": "What was its expected salary?", "session_id": "recruiter_alice"}'
 ```
 **Response:**
 The system uses [memory/session_memory.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/memory/session_memory.py) to resolve *"its"* to candidate `Aarav Sharma (APP-1001)` and returns `INR 470,000`.
@@ -555,10 +611,17 @@ The system uses [memory/session_memory.py](file:///d:/Final%20Capstone%20Project
 
 ### 8.5 Ingesting a New Policy Document (`POST /add-document`)
 Upload a new policy to chunk, embed, and index into ChromaDB:
+
+#### On Windows (PowerShell):
+```powershell
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/add-document" -Method Post -ContentType "application/json" -Body '{"title": "13_relocation_policy.md", "content": "Employees relocating across cities are entitled to relocation allowances up to INR 75,000 with mandatory receipt submissions."}'
+```
+
+#### On Linux / macOS / Git Bash:
 ```bash
 curl -X POST http://127.0.0.1:8000/add-document \
   -H "Content-Type: application/json" \
-  -d "{\"title\": \"13_relocation_policy.md\", \"content\": \"Employees relocating across cities are entitled to relocation allowances up to INR 75,000 with mandatory receipt submissions.\"}"
+  -d '{"title": "13_relocation_policy.md", "content": "Employees relocating across cities are entitled to relocation allowances up to INR 75,000 with mandatory receipt submissions."}'
 ```
 **Response:**
 ```json
@@ -816,6 +879,23 @@ python -c "from observability.logger import DEFAULT_LOGGER; DEFAULT_LOGGER.clear
 python rag/vector_store.py
 ```
 This re-loads all markdown documents from `knowledge_base/` and updates the ChromaDB vector collections under `chroma_storage/`.
+
+### Q7: `Invoke-WebRequest : A parameter cannot be found that matches parameter name 'X'`
+**Cause:** In Windows PowerShell, `curl` is aliased to `Invoke-WebRequest`, which does not recognize `-X`.
+**Solution:** Use any of the following:
+1. Call **`curl.exe`** directly:
+   ```powershell
+   curl.exe http://127.0.0.1:8000/health
+   ```
+2. Use PowerShell's native **`Invoke-RestMethod`**:
+   ```powershell
+   Invoke-RestMethod http://127.0.0.1:8000/health
+   ```
+3. Remove the alias for your current PowerShell session:
+   ```powershell
+   Remove-Item alias:curl
+   ```
+*(Note: Ensure the FastAPI server is running with `uvicorn app.api:app --host 127.0.0.1 --port 8000` before making HTTP calls).*
 
 ---
 
