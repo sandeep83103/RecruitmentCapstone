@@ -1,6 +1,8 @@
 # ==============================================================================
 # Naukri.com Recruitment Domain Support Agent - Requirements Specification
-# Track: Recruitment & HR (Naukri.com)
+# Track: Recruitment & HR Operations (Naukri.com)
+# Frameworks: CrewAI, AutoGen, ChromaDB, SentenceTransformers, FastAPI, LangChain
+# Execution: Deterministic Local Execution (MOCK_LLM), Zero External API Keys
 # ==============================================================================
 
 # Core Agent Orchestration & Multi-Agent Frameworks
@@ -10,23 +12,27 @@ langchain>=0.1.0
 langchain-core>=0.1.0
 langchain-community>=0.0.10
 
-# Vector Embeddings, RAG & Search
+# Vector Embeddings, Semantic RAG & Search
 sentence-transformers>=2.2.2
 chromadb>=0.4.22
 numpy>=1.24.0
 scikit-learn>=1.3.0
+torch>=2.0.0
+transformers>=4.30.0
 
-# API Gateway, WebSockets & Serving
+# API Gateway, Streaming WebSockets & Serving
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
+starlette>=0.36.0
 websockets>=12.0
 httpx>=0.26.0
 
-# Data Validation & Schema Contracts
+# Data Validation, Schema Contracts & Type Safety
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
+typing-extensions>=4.8.0
 
-# Utilities & Observability
+# Environment, Utilities, Testing & Observability
 python-dotenv>=1.0.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
