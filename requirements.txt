@@ -3,6 +3,7 @@
 # Track: Recruitment & HR Operations (Naukri.com)
 # Frameworks: CrewAI, AutoGen, ChromaDB, SentenceTransformers, FastAPI, LangChain
 # Execution: Deterministic Local Execution (MOCK_LLM), Zero External API Keys
+# Verified Runtime: Python 3.12.10 | Pytest 9.1.1 | 48 Passing Tests (100%)
 # ==============================================================================
 
 # Core Agent Orchestration & Multi-Agent Frameworks

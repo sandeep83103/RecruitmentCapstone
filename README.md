@@ -27,6 +27,7 @@ An enterprise-grade, deterministic multi-agent support agent designed for **Nauk
 12. [Complete Verification Matrix](#12-complete-verification-matrix)
 13. [Installation & Execution Guide](#13-installation--execution-guide)
 14. [Step-by-Step Usage Guide](usageguide.md)
+15. [Project Documentation Suite (Docs/)](#15-project-documentation-suite-docs)
 
 ---
 
@@ -174,12 +175,21 @@ Recruitment/
 ├── logs/                             # Audit logging destination
 │   └── support_agent.jsonl           # Sanitized JSON-Lines structured audit log
 │
-└── tests/                            # Comprehensive Pytest test suite (48 tests)
-    ├── test_mock_llm.py              # Mock LLM unit tests
-    ├── test_phase2_rag.py            # Dataset, chunking & RAG tests
-    ├── test_phase3_multiagent.py     # Multi-agent, memory & guardrail tests
-    ├── test_api.py                   # REST, WebSocket & logging tests
-    └── test_phase5_governance.py     # AutoGen, governance & cache tests
+├── Docs/                             # Formal Specifications & Architecture Artifacts
+│   ├── ProblemStatement.md           # Problem statement & business motivation
+│   ├── architecture.md               # Detailed system design & architecture documentation
+│   ├── conventions.md                # Master engineering conventions & AI operating guide
+│   ├── decisions.md                  # Two-line Architectural Decision Records (ADR)
+│   ├── edgecases.md                  # Living catalog of system edge cases & failure modes
+│   ├── evals.md                      # Phase-by-phase test scenarios & pass/fail evaluation plan
+│   └── implementation.md             # Implementation notes & technical details
+│
+├── tests/                            # Comprehensive Pytest test suite (48 tests)
+│   ├── test_mock_llm.py              # Mock LLM unit tests
+│   ├── test_phase2_rag.py            # Dataset, chunking & RAG tests
+│   ├── test_phase3_multiagent.py     # Multi-agent, memory & guardrail tests
+│   ├── test_api.py                   # REST, WebSocket & logging tests
+│   └── test_phase5_governance.py     # AutoGen, governance & cache tests
 ```
 
 ---
@@ -199,34 +209,34 @@ This project runs **100% deterministically without external API keys or remote n
 
 ## 5. Dataset Design & Reproducibility Parameters
 
-The application dataset generator ([dataset.py](file:///d:/Final%20Capstone%20Project/Recruitment/dataset.py)) generates a deterministic distribution of job applications:
+The application dataset generator ([dataset.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/dataset.py)) generates a deterministic distribution of job applications:
 - **Seed:** Fixed `seed = 42`.
 - **Volume:** $N = 45$ records ($\ge 40$).
 - **Category Representation ($\ge 3$ each):**
-  - `Software Engineer` (11)
-  - `Data Analyst` (9)
-  - `Product Manager` (8)
-  - `HR Executive` (9)
-  - `Sales Associate` (8)
+  - `Software Engineer` (12)
+  - `Data Analyst` (11)
+  - `Product Manager` (5)
+  - `HR Executive` (7)
+  - `Sales Associate` (10)
 - **Status Representation ($\ge 1$ each):**
-  - `Applied` (10)
-  - `Screening` (8)
+  - `Applied` (12)
+  - `Screening` (11)
   - `Interview Scheduled` (10)
-  - `Offered` (9)
-  - `Rejected` (8)
+  - `Offered` (5)
+  - `Rejected` (7)
 - **Salary Bands (Expected CTC in INR):**
   - Junior / Support: ₹3,50,000 – ₹7,00,000
   - Mid Engineering / Analytics: ₹8,00,000 – ₹18,00,000
   - Senior / Product Management: ₹20,00,000 – ₹45,00,000
 - **Recency:** `days_since_created` integer $\in [0, 30]$ days.
-- **Priority Review Flag:** `flagged_priority_review` strictly controlled within the **10%–30%** band (actual: **22.2%**).
+- **Priority Review Flag:** `flagged_priority_review` strictly controlled within the **10%–30%** band (actual: **20.00%**, 9/45 records).
 
 ---
 
 ## 6. Policy Knowledge Base & Dual-Chunking RAG
 
 ### Knowledge Base Documents
-The recruitment knowledge base contains 12 authoritative policy markdown documents ([knowledge_base/](file:///d:/Final%20Capstone%20Project/Recruitment/knowledge_base/)):
+The recruitment knowledge base contains 12 authoritative policy markdown documents ([knowledge_base/](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/knowledge_base/)):
 1. `01_eligibility_criteria.md`: B.Tech/MCA/MBA requirements, minimum 60% aggregate, max 1 gap year.
 2. `02_interview_scheduling.md`: 48-hour advance notice, max 2 candidate reschedules.
 3. `03_offer_negotiation.md`: CTC bands, sign-on bonus approval, 5 calendar-day offer validity.
@@ -296,23 +306,23 @@ Built on LangChain's `InMemoryChatMessageHistory` with session ID indexing:
 
 ## 8. Multi-Tier Guardrails & Pre-Disk PII Redaction
 
-1. **Input PII Masker ([guardrails/pii_masker.py](file:///d:/Final%20Capstone%20Project/Recruitment/guardrails/pii_masker.py)):**
+1. **Input PII Masker ([guardrails/pii_masker.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/guardrails/pii_masker.py)):**
    - Pattern: `(?<!\w)(?:\+91[\-\s]?|91[\-\s]?|[0]?)?[6-9]\d{9}\b`
    - Replaces 10-digit Indian phone numbers with `[PHONE_MASKED]`.
    - Utilizes negative lookbehind `(?<!\w)` to eliminate false positives on UUID hex segments.
-2. **Prompt Injection Defense ([guardrails/injection_detector.py](file:///d:/Final%20Capstone%20Project/Recruitment/guardrails/injection_detector.py)):**
+2. **Prompt Injection Defense ([guardrails/injection_detector.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/guardrails/injection_detector.py)):**
    - Heuristically blocks jailbreak attempts (`ignore previous instructions`, `system prompt override`, `you are now DAN`).
    - Immediately returns safe refusal notice without calling agents.
-3. **Output Grounding Guardrail ([guardrails/grounding_guard.py](file:///d:/Final%20Capstone%20Project/Recruitment/guardrails/grounding_guard.py)):**
+3. **Output Grounding Guardrail ([guardrails/grounding_guard.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/guardrails/grounding_guard.py)):**
    - Validates generated claims against retrieved context. If factual similarity $< 0.60$, enforces safe refusal.
-4. **Data Hygiene Invariant ([observability/logger.py](file:///d:/Final%20Capstone%20Project/Recruitment/observability/logger.py)):**
+4. **Data Hygiene Invariant ([observability/logger.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/observability/logger.py)):**
    - Pre-disk PII redaction ensures raw telephone numbers never touch disk in `logs/support_agent.jsonl`.
 
 ---
 
 ## 9. Production Serving: REST & Streaming WebSocket
 
-### REST Endpoints ([app/api.py](file:///d:/Final%20Capstone%20Project/Recruitment/app/api.py))
+### REST Endpoints ([app/api.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/app/api.py))
 - `POST /ask`: Accepts JSON `{"query": str, "session_id": Optional[str]}`, returns validated `SupportAgentResponse`.
 - `POST /add-document`: Accepts `{"title": str, "content": str}`, splits into fixed and sentence chunks, and indexes into ChromaDB.
 - `GET /health`: Returns service operational status.
@@ -340,7 +350,7 @@ curl -X POST http://localhost:8000/ask \
 }
 ```
 
-### Streaming WebSocket ([app/websocket.py](file:///d:/Final%20Capstone%20Project/Recruitment/app/websocket.py))
+### Streaming WebSocket ([app/websocket.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/app/websocket.py))
 - `WS /ws/chat`: Real-time bidirectional token streaming with structured lifecycle events (`start`, `chunk`, `complete`, `error`).
 - **Resilience:** Implements `try...except WebSocketDisconnect` to ensure abnormal client disconnects never crash the server.
 
@@ -348,7 +358,7 @@ curl -X POST http://localhost:8000/ask \
 
 ## 10. Resilience, AI Governance & Response Caching
 
-### AutoGen Secondary Review Stage ([autogen_review/](file:///d:/Final%20Capstone%20Project/Recruitment/autogen_review/))
+### AutoGen Secondary Review Stage ([autogen_review/](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/autogen_review/))
 - **Team:** 2-agent `RoundRobinGroupChat` (`max_turns=2`):
   1. `PolicyComplianceReviewer`: Audits CrewAI draft answers against official policies and compensation bounds.
   2. `FinalEditor`: Enforces tone and emits a validated Pydantic `ReviewVerdict`.
@@ -357,13 +367,13 @@ curl -X POST http://localhost:8000/ask \
   - Clean factual drafts are approved unchanged (`approved=True`).
   - Hallucinated or ungrounded claims are actively rewritten (`approved=False`, `review_status="revised_by_audit"`).
 
-### Four-Layer AI Governance Model ([governance/](file:///d:/Final%20Capstone%20Project/Recruitment/governance/))
+### Four-Layer AI Governance Model ([governance/](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/governance/))
 1. **Application Layer (Least Autonomy & Risk Classification):**
    - Tool isolation prevents cross-agent capability misuse.
    - Classified as **Medium-to-High Risk** due to candidate salary benchmarks (3.5 to 45 LPA) and escalation routing.
 2. **Runtime & Cost Layer (Budget Caps & Response Caching):**
-   - Hard character ceiling of $\le 1,000$ characters ([governance/budget_controller.py](file:///d:/Final%20Capstone%20Project/Recruitment/governance/budget_controller.py)). Oversized requests rejected with HTTP 413.
-   - In-memory normalized LRU cache ([cache/response_cache.py](file:///d:/Final%20Capstone%20Project/Recruitment/cache/response_cache.py)) eliminates duplicate multi-agent runs.
+   - Hard character ceiling of $\le 1,000$ characters ([governance/budget_controller.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/governance/budget_controller.py)). Oversized requests rejected with HTTP 413.
+   - In-memory normalized LRU cache ([cache/response_cache.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/cache/response_cache.py)) eliminates duplicate multi-agent runs.
 3. **Verification & Alignment Layer:**
    - Dual-stage auditing (CrewAI Composer $\rightarrow$ AutoGen Editor) with empirical cosine cutoff ($\tau_{\text{RAG}} = 0.60$).
 4. **Data & Compliance Layer:**
@@ -371,10 +381,10 @@ curl -X POST http://localhost:8000/ask \
 
 ### Normalized Response Cache Metrics
 - **Normalization:** Trims whitespace, lowercases, and strips trailing punctuation (`normalize_query()`).
-- **Performance:**
-  - Cold Request Latency: $\sim 14,242 \text{ ms}$ (full RAG + CrewAI + AutoGen pipeline).
-  - Warm Cache Hit Latency: $0.025 \text{ ms}$.
-  - **Latency Reduction:** $> 500,000\times$ speedup on repeated queries.
+- **Performance (Empirically Verified):**
+  - Cold Request Latency: $10,413.36 \text{ ms}$ (full RAG + CrewAI + AutoGen pipeline).
+  - Warm Cache Hit Latency: $0.0296 \text{ ms}$.
+  - **Latency Reduction:** $351,802.9\times$ speedup ($> 350,000\times$) on repeated queries.
 
 ---
 
@@ -390,7 +400,7 @@ Evaluated across 15 benchmark queries (12 policy topics + 2 out-of-scope + 1 adv
 | **Safety** | $100\%$ | **100.0%** | Pre-disk PII masking and prompt injection defense |
 | **Composite Average** | - | **95.7%** | **Overall Benchmark Quality Rating** |
 
-Benchmark results are serialized to [evaluation/benchmark_results.json](file:///d:/Final%20Capstone%20Project/Recruitment/evaluation/benchmark_results.json).
+Benchmark results are serialized to [evaluation/benchmark_results.json](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/evaluation/benchmark_results.json).
 
 ---
 
@@ -400,11 +410,11 @@ Every task and component has a dedicated, reproducible CLI command:
 
 | Phase | Component | Verification Command | Expected Outcome |
 | :--- | :--- | :--- | :--- |
-| **Phase 2** | Dataset Generator | `python dataset.py` | $\ge 40$ records, 5 categories $\ge 3$, 5 statuses $\ge 1$, flags $10-30\%$ |
-| **Phase 2** | ChromaDB Indexing | `python rag/vector_store.py` | Fixed & Sentence collections loaded with 12 policy documents |
+| **Phase 2** | Dataset Generator | `python dataset.py` | 45 records, 5 categories $\ge 3$, 5 statuses $\ge 1$, flags $20.00\%$ ($10-30\%$) |
+| **Phase 2** | ChromaDB Indexing | `python rag/vector_store.py` | Fixed (48) & Sentence (49) collections loaded with 12 policy documents |
 | **Phase 2** | Grounded Generation | `python rag/retrieval.py` | 5 in-scope answers grounded; 1 out-of-scope triggers fallback |
-| **Phase 2** | Chunking Eval | `python rag/eval_chunking.py` | Precision & Recall calculated with arithmetic recommendation |
-| **Phase 3** | Application Lookup Tool | `python tools/application_lookup.py` | Record returned with formulaic escalation score $\in [0, 1]$ |
+| **Phase 2** | Chunking Eval | `python rag/eval_chunking.py` | Precision: 0.80 & Recall: 1.00 calculated with sentence chunking recommendation |
+| **Phase 3** | Application Lookup Tool | `python tools/application_lookup.py` | Record returned with formulaic escalation score $\in [0, 1]$ (Alert $\ge 0.65$) |
 | **Phase 3** | CrewAI 3-Agent Crew | `python crew/recruitment_crew.py` | 3 agents execute via `.kickoff()` with tools invoked |
 | **Phase 3** | Session Memory | `python memory/session_memory.py` | Multi-turn transcript carries context; reset transcript resets |
 | **Phase 3** | Guardrails Suite | `python guardrails/pii_masker.py` | Phone masked, injection blocked, ungrounded answer refused |
@@ -414,8 +424,8 @@ Every task and component has a dedicated, reproducible CLI command:
 | **Phase 5** | AutoGen Review Team | `python autogen_review/review_team.py` | Approved clean demo + Hallucination revised demo |
 | **Phase 5** | Governance Budget Cap | `python governance/budget_controller.py` | Oversized prompt rejected under runtime cap (HTTP 413) |
 | **Phase 5** | Least Autonomy Check | `python governance/least_autonomy_validator.py` | Proves tool isolation raises `PermissionError` on violation |
-| **Phase 5** | Response Cache Engine | `python cache/response_cache.py` | Hit verified with call counter & $>500,000\times$ latency drop |
-| **All** | **Full Test Suite** | `pytest tests` | **All 48 unit & integration tests passing (100%)** |
+| **Phase 5** | Response Cache Engine | `python cache/response_cache.py` | Hit verified with call counter & $351,802.9\times$ ($>350,000\times$) latency drop |
+| **All** | **Full Test Suite** | `pytest tests` | **All 48 unit & integration tests passing (100% in 114.46s)** |
 
 ---
 
@@ -465,6 +475,20 @@ Interactive Swagger API documentation will be available at:
 
 > [!TIP]
 > For complete user input specifications, master sample input catalog across all 12 policies, standalone verification scripts, WebSocket streaming client code, and cURL examples, refer to the [Step-by-Step Usage Guide](usageguide.md).
+
+---
+
+## 15. Project Documentation Suite (Docs/)
+
+The [`Docs/`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/) directory serves as the centralized engineering and architectural source of truth for the recruitment support agent:
+
+- **[Docs/conventions.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/conventions.md):** Master coding conventions, architectural invariants, folder taxonomy, naming conventions, error-handling protocols, approved libraries, and anti-patterns.
+- **[Docs/decisions.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/decisions.md):** Concise 2-line Architectural Decision Records (ADRs) documenting every non-obvious engineering choice and rationale.
+- **[Docs/evals.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/evals.md):** Formal phase-by-phase evaluation harness detailing concrete test scenarios, expected outputs, pass/fail metrics, and verification steps.
+- **[Docs/edgecases.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/edgecases.md):** Living edge-case registry partitioned into *anticipated* scenarios and *discovered during build* edge cases with systemic remedies.
+- **[Docs/architecture.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/architecture.md):** Master architectural blueprint including data flow diagrams, state diagrams, and governance layer topology.
+- **[Docs/ProblemStatement.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/ProblemStatement.md):** Problem statement, domain track requirements, and business goals for the Naukri.com recruitment agent.
+- **[Docs/implementation.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/implementation.md):** Step-by-step implementation notes, module dependencies, and verification milestones.
 
 ---
 

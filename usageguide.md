@@ -31,6 +31,7 @@ This guide provides end-to-end instructions for installing, configuring, executi
     - [Phase 5: AutoGen Review Team, Governance & Caching](#phase-5-autogen-review-team-governance--caching)
 11. [Inspecting Structured Audit Logs](#11-inspecting-structured-audit-logs)
 12. [Troubleshooting & Common Questions](#12-troubleshooting--common-questions)
+13. [Project Documentation Suite & Engineering Standards (Docs/)](#13-project-documentation-suite--engineering-standards-docs)
 
 ---
 
@@ -128,7 +129,7 @@ pytest tests -v
   pytest tests/test_phase5_governance.py -v
   ```
 
-**Expected Outcome:** `48 passed (100% pass rate)`.
+**Expected Outcome:** `48 passed in 114.46s (100% pass rate, Python 3.12.10, Pytest 9.1.1)`.
 
 ---
 
@@ -727,25 +728,25 @@ Every phase includes standalone scripts that demonstrate the exact requirements,
    ```bash
    python dataset.py
    ```
-   *Validates:* 45 records, 5 categories ($\ge 3$), 5 statuses ($\ge 1$), and $22.2\%$ priority flags (strictly within $10\%–30\%$).
+   *Validates:* 45 records, 5 categories (Software Engineer: 12, Data Analyst: 11, Sales Associate: 10, HR Executive: 7, Product Manager: 5), 5 statuses (Applied: 12, Screening: 11, Interview Scheduled: 10, Rejected: 7, Offered: 5), and 20.00% (9/45) priority review flags (strictly within 10%–30%).
 
 2. **ChromaDB Indexing (12 Policy Markdown Files):**
    ```bash
    python rag/vector_store.py
    ```
-   *Validates:* Indexes all 12 policy files from `knowledge_base/` into `naukri_fixed_chunks` and `naukri_sentence_chunks`.
+   *Validates:* Indexes all 12 policy files from `knowledge_base/` into 48 fixed-size chunks (200 chars / 40 overlap) and 49 sentence-based chunks across `naukri_fixed_chunks` and `naukri_sentence_chunks`.
 
 3. **Grounded RAG Retrieval & Calibrated Fallback ($\tau_{\text{RAG}} = 0.60$):**
    ```bash
    python rag/retrieval.py
    ```
-   *Validates:* 5 in-scope policy answers retrieved; out-of-scope question triggers fallback refusal notice.
+   *Validates:* 5 in-scope policy answers retrieved with high cosine similarity ($[0.75, 1.00]$); out-of-scope question ($[0.08, 0.13]$) triggers fallback refusal notice below calibrated threshold $\tau_{\text{RAG}} = 0.60$.
 
 4. **Chunking Strategy Precision & Recall Evaluation:**
    ```bash
    python rag/eval_chunking.py
    ```
-   *Validates:* Tabulates per-query Precision & Recall for Fixed-Size vs. Sentence-Based Chunking and outputs the engineering recommendation.
+   *Validates:* Tabulates per-query Precision (0.80) & Recall (1.00) at $k=3$ for Fixed-Size vs. Sentence-Based Chunking and outputs the engineering recommendation (sentence-based).
 
 ---
 
@@ -755,7 +756,7 @@ Every phase includes standalone scripts that demonstrate the exact requirements,
    ```bash
    python tools/application_lookup.py
    ```
-   *Validates:* Calculates $0.5 \times \text{flag} + 0.5 \times (\text{recency} / 30)$ and triggers recruiter alert when $\ge 0.65$.
+   *Validates:* Calculates $0.5 \times \text{flag} + 0.5 \times (\text{recency} / 30)$. APP-1011 (flagged, 14 days) yields 0.7333 $\ge 0.65$ (Recruiter Alert Triggered); APP-1001 (unflagged, 2 days) yields 0.0333 $< 0.65$ (Normal).
 
 2. **CrewAI 3-Agent Multi-Agent Orchestration:**
    ```bash
@@ -817,7 +818,7 @@ Every phase includes standalone scripts that demonstrate the exact requirements,
    ```bash
    python cache/response_cache.py
    ```
-   *Validates:* Cold query takes full pipeline ($\sim 10\text{ s}$); identical normalized query hits in-memory cache in $0.025\text{ ms}$ ($> 500,000\times$ speedup).
+   *Validates:* Cold query takes full pipeline ($10,413.36\text{ ms}$); identical normalized query hits in-memory cache in $0.0296\text{ ms}$ ($351,802.9\times$ speedup, $> 350,000\times$).
 
 ---
 
@@ -899,4 +900,20 @@ This re-loads all markdown documents from `knowledge_base/` and updates the Chro
 
 ---
 
-**End of Usage Guide** — For complete architectural specifications, dataset reproduction parameters, and governance policies, refer to [README.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/README.md) and [Docs/architecture.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/architecture.md).
+## 13. Project Documentation Suite & Engineering Standards (Docs/)
+
+The [`Docs/`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/) directory serves as the centralized engineering and architectural source of truth for the recruitment support agent:
+
+| Documentation File | Primary Purpose & Key Contents |
+| :--- | :--- |
+| **[`Docs/conventions.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/conventions.md)** | **Master Engineering Standards:** Naming conventions (`snake_case`, `PascalCase`, `SCREAMING_SNAKE_CASE`), folder taxonomy, error handling patterns, Starlette HTTP 413 constants, approved libraries, and anti-patterns. |
+| **[`Docs/decisions.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/decisions.md)** | **Architectural Decision Records (ADR):** Two-line problem-solution entries explaining non-obvious design choices (Mock LLM, local embeddings, LangChain InMemoryChatMessageHistory, regex PII masking, AutoGen StructuredMessage, etc.). |
+| **[`Docs/evals.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/evals.md)** | **Evaluation & Verification Harness:** Formal test scenarios for Phases 1–5, exact expected outputs, mathematical threshold validations, and automated pass/fail criteria. |
+| **[`Docs/edgecases.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/edgecases.md)** | **Living Edge-Case Catalog:** Systematically grouped into *Anticipated* (prompt injection, out-of-scope queries, phone PII) and *Discovered During Build* (AutoGen structured messages, regex UUID hex collisions, Starlette 413 deprecation, session reset without IDs). |
+| **[`Docs/architecture.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/architecture.md)** | **System Architecture Blueprint:** End-to-end dataflow diagrams, multi-agent state machines, guardrail sequencing, and AI governance topology. |
+| **[`Docs/ProblemStatement.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/ProblemStatement.md)** | **Domain Requirements:** Capstone scope for Naukri.com Recruitment & HR Operations, core deliverables, and evaluation rubrics. |
+| **[`Docs/implementation.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/implementation.md)** | **Implementation Notes:** Milestone tracking, module dependencies, and exact execution commands. |
+
+---
+
+**End of Usage Guide** — For complete architectural specifications, dataset reproduction parameters, governance policies, and engineering conventions, refer to [README.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/README.md), [Docs/architecture.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/architecture.md), and [Docs/conventions.md](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/conventions.md).
