@@ -432,26 +432,41 @@ Every task and component has a dedicated, reproducible CLI command:
 ## 13. Installation & Execution Guide
 
 ### 1. Prerequisites
-- Python 3.10, 3.11, 3.12, or 3.14
-- Git
+- **Python Version:** **Python 3.12** (verified runtime: **Python 3.12.10**)
+- Git CLI
 
-### 2. Clone Repository & Setup Virtual Environment
+### 2. Clone Repository & Setup Virtual Environment (Python 3.12)
 ```bash
 git clone https://github.com/sandeep83103/RecruitmentCapstone.git
 cd RecruitmentCapstone
 
-# Create virtual environment
-python -m venv .venv
+# Create virtual environment targeting Python 3.12
+# On Windows (PowerShell / Command Prompt using Python Launcher):
+py -3.12 -m venv .venv
+# (Or if python defaults to 3.12 in your PATH: python -m venv .venv)
 
-# Activate virtual environment
+# On Linux / macOS:
+python3.12 -m venv .venv
+
+# Activate virtual environment:
 # Windows (PowerShell):
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass  # If script execution is restricted
 .\.venv\Scripts\Activate.ps1
+
+# Windows (Command Prompt):
+.\.venv\Scripts\activate.bat
+
 # Linux / macOS:
 source .venv/bin/activate
+
+# Verify Python version (must report Python 3.12.x):
+python --version
+# Expected: Python 3.12.10 (or 3.12.x)
 ```
 
 ### 3. Install Dependencies
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 

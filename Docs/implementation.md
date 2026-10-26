@@ -63,7 +63,26 @@ Establish the isolated virtual environment, install pinned dependencies, enforce
 ### Detailed Step-by-Step Execution
 
 #### Step 1.1: Dependency Specification & Virtual Environment
-Create a clean virtual environment and configure `requirements.txt`:
+Establish an isolated virtual environment using Python 3.12 (verified on Python 3.12.10):
+
+```bash
+# Windows (PowerShell / Command Prompt using Python Launcher):
+py -3.12 -m venv .venv
+# (Or if python defaults to 3.12 in your PATH: python -m venv .venv)
+
+# PowerShell script execution unblock & activation:
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+
+# Linux / macOS:
+python3.12 -m venv .venv
+source .venv/bin/activate
+
+# Verify Python 3.12 runtime:
+python --version  # Output: Python 3.12.10
+```
+
+Configure `requirements.txt` with strict compatible library pins:
 ```txt
 crewai>=0.11.0
 autogen-agentchat>=0.2.0
@@ -76,6 +95,12 @@ langchain-core>=0.1.0
 langchain-community>=0.0.10
 pydantic>=2.5.0
 pytest>=8.0.0
+```
+
+Install pinned dependencies:
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
 #### Step 1.2: Suppress Outbound Telemetry

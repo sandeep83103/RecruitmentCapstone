@@ -464,6 +464,18 @@ Contributors must adhere to the pinned libraries specified in [requirements.txt]
 | **`python-dotenv`** | `>=1.0.0` | Local `.env` Loading | Manage local configuration flags. |
 | **`scikit-learn`** | `>=1.3.0` | Metric Evaluation & Cosine Math | Precision, recall, and distance metrics in RAG benchmarking. |
 
+### 5.1 Runtime & Virtual Environment Standards
+- **Canonical Python Runtime:** **Python 3.12** (verified runtime: **Python 3.12.10**). All 48 tests pass with 100% determinism on this version.
+- **Virtual Environment Directory:** `.venv` located at the repository root.
+- **Exact Virtual Environment Creation Commands:**
+  - **Windows (PowerShell / Command Prompt):** `py -3.12 -m venv .venv` (or `python -m venv .venv` when Python 3.12 is the active system default).
+  - **Linux / macOS:** `python3.12 -m venv .venv`
+- **Activation Commands:**
+  - **Windows PowerShell:** `.\.venv\Scripts\Activate.ps1` (with `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` if script execution is restricted).
+  - **Windows Command Prompt:** `.\.venv\Scripts\activate.bat`
+  - **Linux / macOS:** `source .venv/bin/activate`
+- **Verification Rule:** `python --version` must output `Python 3.12.x` prior to running tests or server components.
+
 ---
 
 ## 6. Strict Patterns to Avoid (Anti-Patterns & Pitfalls)

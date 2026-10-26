@@ -4,6 +4,11 @@
 > **PRE-FLIGHT SPECIFICATION (TEST-DRIVEN & EVALUATION-DRIVEN DESIGN):**
 > This document defines the definitive verification framework for the **Naukri.com Recruitment Domain Support Agent**.
 > Authored prior to phase execution, it establishes the **specific test scenarios**, **expected system behaviors**, **quantitative pass/fail thresholds**, and **executable commands** required to validate each phase before code is merged or submitted.
+> 
+> **Verified Runtime Environment:** **Python 3.12.10** in an isolated `.venv` virtual environment created via:
+> - Windows: `py -3.12 -m venv .venv` and activated with `.\.venv\Scripts\Activate.ps1`
+> - Linux/macOS: `python3.12 -m venv .venv` and activated with `source .venv/bin/activate`
+> Verification commands may be executed via activated shell (`pytest tests/...`) or directly via `.venv\Scripts\python.exe -m pytest ...` (Windows) / `.venv/bin/pytest` (Unix).
 
 ---
 

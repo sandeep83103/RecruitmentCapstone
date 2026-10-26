@@ -38,7 +38,7 @@ This guide provides end-to-end instructions for installing, configuring, executi
 ## 1. Prerequisites & System Requirements
 
 - **Operating System:** Windows 10/11, macOS (Intel or Apple Silicon), or Linux (Ubuntu 20.04+)
-- **Python Version:** Python `3.10`, `3.11`, `3.12`, or `3.14` installed and added to `PATH`.
+- **Python Version:** **Python 3.12** (strictly verified on **Python 3.12.10**; Python 3.10–3.12 supported). Ensure Python 3.12 is installed and added to `PATH`.
 - **Git:** Git CLI installed.
 - **Hardware:** Minimum 4 GB RAM (8 GB recommended for local vector embeddings).
 - **API Keys / Cost:** **Zero external API keys required.** The system operates completely offline in deterministic `MOCK_LLM` mode with local vector embeddings via `sentence-transformers`.
@@ -54,30 +54,53 @@ git clone https://github.com/sandeep83103/RecruitmentCapstone.git
 cd RecruitmentCapstone
 ```
 
-### Step 2.2: Create and Activate Virtual Environment
+### Step 2.2: Create and Activate Virtual Environment (Python 3.12)
 
-#### On Windows (PowerShell):
+To ensure full compatibility with the tested packages and deterministic execution, create and activate a Python 3.12 virtual environment:
+
+#### On Windows (PowerShell - Recommended):
 ```powershell
-# Create virtual environment
-python -m venv .venv
+# Create virtual environment explicitly using Python 3.12 via Windows Python Launcher:
+py -3.12 -m venv .venv
+# (Or if python defaults to 3.12 in your PATH: python -m venv .venv)
 
 # If script execution is restricted in PowerShell, run this once in your session:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 # Activate virtual environment
 .\.venv\Scripts\Activate.ps1
+
+# Verify Python version (must report Python 3.12.x):
+python --version
+# Expected Output: Python 3.12.10 (or 3.12.x)
 ```
 
 #### On Windows (Command Prompt - cmd.exe):
 ```cmd
-python -m venv .venv
+:: Create virtual environment using Python 3.12 launcher
+py -3.12 -m venv .venv
+:: (Or if python defaults to 3.12 in your PATH: python -m venv .venv)
+
+:: Activate virtual environment
 .\.venv\Scripts\activate.bat
+
+:: Verify Python version:
+python --version
+:: Expected Output: Python 3.12.x
 ```
 
 #### On Linux / macOS:
 ```bash
-python3 -m venv .venv
+# Create virtual environment targeting Python 3.12
+python3.12 -m venv .venv
+# (Or if python3 defaults to 3.12: python3 -m venv .venv)
+
+# Activate virtual environment
 source .venv/bin/activate
+
+# Verify Python version:
+python --version
+# Expected Output: Python 3.12.x
 ```
 
 ### Step 2.3: Upgrade Package Manager & Install Dependencies
@@ -897,6 +920,22 @@ This re-loads all markdown documents from `knowledge_base/` and updates the Chro
    Remove-Item alias:curl
    ```
 *(Note: Ensure the FastAPI server is running with `uvicorn app.api:app --host 127.0.0.1 --port 8000` before making HTTP calls).*
+
+### Q8: How do I ensure my virtual environment uses Python 3.12 when multiple Python versions are installed?
+**Answer:**
+- **On Windows:** Use the Windows Python Launcher specifying `-3.12`:
+  ```powershell
+  py -3.12 -m venv .venv
+  ```
+- **On Linux / macOS:** Use the version-qualified binary:
+  ```bash
+  python3.12 -m venv .venv
+  ```
+- **Verification:** After activation (`.\.venv\Scripts\Activate.ps1` or `source .venv/bin/activate`), run:
+  ```bash
+  python --version
+  ```
+  It should report `Python 3.12.10` (or `3.12.x`).
 
 ---
 
