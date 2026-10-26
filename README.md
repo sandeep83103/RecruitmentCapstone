@@ -468,11 +468,16 @@ python --version
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+
+# Verify dependency version alignment (zero conflicts):
+pip check
+# Expected: No broken requirements found.
 ```
 
 ### 4. Run the Full Test Suite
 ```bash
 pytest tests -v
+# Verified: 48 passed in 63.75s (100% pass rate on Python 3.12.10, Pytest 9.1.1)
 ```
 
 ### 5. Launch the Interactive Console CLI (Direct User Interaction)

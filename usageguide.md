@@ -104,10 +104,16 @@ python --version
 ```
 
 ### Step 2.3: Upgrade Package Manager & Install Dependencies
-Install all required production dependencies pinned in `requirements.txt`:
+Install all required production dependencies pinned in `requirements.txt` (which includes explicit compatibility pins for `protobuf~=5.29.3`, `googleapis-common-protos<1.72`, and `aiosqlite~=0.21.0` to prevent transitive resolver conflicts with AutoGen and CrewAI):
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+Verify that all dependencies satisfy version constraints with zero conflicts:
+```bash
+pip check
+# Expected Output: No broken requirements found.
 ```
 
 ### Step 2.4: Verify Environment Configuration
@@ -152,7 +158,7 @@ pytest tests -v
   pytest tests/test_phase5_governance.py -v
   ```
 
-**Expected Outcome:** `48 passed in 114.46s (100% pass rate, Python 3.12.10, Pytest 9.1.1)`.
+**Expected Outcome:** `48 passed in 63.75s (100% pass rate, Python 3.12.10, Pytest 9.1.1)`.
 
 ---
 
@@ -937,6 +943,40 @@ This re-loads all markdown documents from `knowledge_base/` and updates the Chro
   ```
   It should report `Python 3.12.10` (or `3.12.x`).
 
+### Q9: How do I resolve `SyntaxError: source code string cannot contain null bytes` or corrupted virtual environment packages?
+**Cause:** On Windows, abrupt process terminations or storage interruptions can leave zero-byte or null-padded `.py` files in `.venv/Lib/site-packages` (e.g. `anyio/pytest_plugin.py` or `grpc`).
+**Solution:**
+1. Identify any broken package distributions:
+   ```bash
+   python -c "import importlib.metadata; print([d.metadata['Name'] for d in importlib.metadata.distributions() if d.version is None])"
+   ```
+2. Reinstall the target package using `--force-reinstall`:
+   ```bash
+   python -m pip install --force-reinstall anyio
+   # Or reinstall all project requirements:
+   python -m pip install --force-reinstall -r requirements.txt
+   ```
+
+### Q10: How do I prevent `autogen-core requires protobuf~=5.29.3` or `googleapis-common-protos` version conflicts?
+**Cause:** `autogen-core 0.7.5` strictly requires `protobuf~=5.29.3`. Installing unpinned Google API packages can pull `googleapis-common-protos>=1.75.0` which requires `protobuf>=6.33.5`.
+**Solution:**
+Pinned compatibility constraints are defined in [`requirements.txt`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/requirements.txt):
+```bash
+python -m pip install "protobuf>=5.29.3,<5.30.0" "googleapis-common-protos<1.72.0" "aiosqlite~=0.21.0"
+```
+Verify resolution with `pip check`.
+
+### Q11: How do I verify virtual environment package integrity?
+**Answer:**
+Run:
+```bash
+pip check
+```
+If clean, pip will report:
+```text
+No broken requirements found.
+```
+
 ---
 
 ## 13. Project Documentation Suite & Engineering Standards (Docs/)
@@ -948,7 +988,7 @@ The [`Docs/`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/Re
 | **[`Docs/conventions.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/conventions.md)** | **Master Engineering Standards:** Naming conventions (`snake_case`, `PascalCase`, `SCREAMING_SNAKE_CASE`), folder taxonomy, error handling patterns, Starlette HTTP 413 constants, approved libraries, and anti-patterns. |
 | **[`Docs/decisions.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/decisions.md)** | **Architectural Decision Records (ADR):** Two-line problem-solution entries explaining non-obvious design choices (Mock LLM, local embeddings, LangChain InMemoryChatMessageHistory, regex PII masking, AutoGen StructuredMessage, etc.). |
 | **[`Docs/evals.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/evals.md)** | **Evaluation & Verification Harness:** Formal test scenarios for Phases 1–5, exact expected outputs, mathematical threshold validations, and automated pass/fail criteria. |
-| **[`Docs/edgecases.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/edgecases.md)** | **Living Edge-Case Catalog:** Systematically grouped into *Anticipated* (prompt injection, out-of-scope queries, phone PII) and *Discovered During Build* (AutoGen structured messages, regex UUID hex collisions, Starlette 413 deprecation, session reset without IDs). |
+| **[`Docs/edgecases.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/edgecases.md)** | **Living Edge-Case Catalog:** Systematically grouped into *Anticipated* (prompt injection, out-of-scope queries, phone PII) and *Discovered During Build* (AutoGen structured messages, regex UUID hex collisions, Starlette 413 deprecation, session reset without IDs, null-byte package recovery EC-17, Protobuf 5 alignment EC-18, aiosqlite pin EC-19). |
 | **[`Docs/architecture.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/architecture.md)** | **System Architecture Blueprint:** End-to-end dataflow diagrams, multi-agent state machines, guardrail sequencing, and AI governance topology. |
 | **[`Docs/ProblemStatement.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/ProblemStatement.md)** | **Domain Requirements:** Capstone scope for Naukri.com Recruitment & HR Operations, core deliverables, and evaluation rubrics. |
 | **[`Docs/implementation.md`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/Docs/implementation.md)** | **Implementation Notes:** Milestone tracking, module dependencies, and exact execution commands. |

@@ -37,3 +37,8 @@ typing-extensions>=4.8.0
 python-dotenv>=1.0.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+
+# Pinned Compatibility Alignment (AutoGen & CrewAI Resolver Guarantee)
+protobuf>=5.29.3,<5.30.0
+googleapis-common-protos<1.72.0
+aiosqlite~=0.21.0

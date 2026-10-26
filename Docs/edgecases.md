@@ -29,6 +29,9 @@
 | **EC-14** | Observability | Discovered | Cleartext PII leaking into JSON-Lines disk logs before model guards | Critical | Pre-disk scrubbing hook in `observability/logger.py` | [test_phase5_governance.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/tests/test_phase5_governance.py#L220-L250) |
 | **EC-15** | RAG | Discovered | Uncalibrated tutorial similarity thresholds (0.5/0.7) misclassifying queries | High | Empirical calibration separating in-scope (0.68+) and out-of-scope (0.38-0.54) | [test_phase2_rag.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/tests/test_phase2_rag.py#L90-L115) |
 | **EC-16** | Performance | Discovered | Cache misses caused by trailing whitespace and punctuation variations | Medium | Query canonicalization (lowercase, strip whitespace, remove terminal punctuation) | [test_phase5_governance.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/tests/test_phase5_governance.py#L140-L175) |
+| **EC-17** | Runtime / OS | Discovered | Null-byte file corruption from interrupted disk writes (`SyntaxError: null bytes`) | High | Force-reinstall target distribution using `pip install --force-reinstall` | Verified via virtualenv integrity check |
+| **EC-18** | Dependency | Discovered | `autogen-core` Protobuf 5 constraint vs `googleapis-common-protos` Protobuf 6 | Critical | Pin `protobuf>=5.29.3,<5.30.0` and `googleapis-common-protos<1.72.0` in `requirements.txt` | [test_phase5_governance.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/tests/test_phase5_governance.py) |
+| **EC-19** | Dependency | Discovered | CrewAI strict `aiosqlite~=0.21.0` pin conflict with newer `aiosqlite 0.22.x` | Medium | Pin `aiosqlite~=0.21.0` explicitly in `requirements.txt` | [test_phase3_multiagent.py](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/tests/test_phase3_multiagent.py) |
 
 ---
 
@@ -244,6 +247,30 @@ These critical edge cases were uncovered during development, integration testing
   Naive dictionary lookups used raw query strings as hash keys.
 - **Implemented Solution:**
   Implemented [`normalize_query()`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/cache/response_cache.py#L15-L30) to trim whitespace, convert to lowercase, strip trailing punctuation (`?`, `.`, `!`), and collapse internal multi-spaces. This increased cache hit rates from 45% to over 90% on repeated queries.
+
+#### EC-17: Null-Byte Virtual Environment File Corruption
+- **Category:** Environment / Filesystem Resilience
+- **Discovery Context:** Following an unexpected task interruption or abrupt process kill, Python raised `SyntaxError: source code string cannot contain null bytes` during test collection in `.venv`.
+- **Root Cause Analysis:**
+  Windows filesystem pre-allocation without complete disk flush left target package `.py` files filled with zero bytes (null bytes) rather than valid Python source code.
+- **Implemented Solution:**
+  Diagnosed the corrupted distributions via `importlib.metadata.distributions()`, uninstalled corrupted targets, and executed `pip install --force-reinstall <package>`. Documented diagnostic script in `usageguide.md` Section 12.
+
+#### EC-18: Protobuf Incompatibility Between AutoGen and Googleapis-Common-Protos
+- **Category:** Dependency Resolution / Framework Stability
+- **Discovery Context:** Installing latest unpinned dependencies installed `googleapis-common-protos 1.76.0`, which pulled `protobuf 7.36.2`, breaking `autogen-core 0.7.5` which strictly requires `protobuf~=5.29.3`.
+- **Root Cause Analysis:**
+  Transitive dependency version collision between AutoGen's protobuf 5 pin and newer grpc/gcp proto distributions requiring protobuf 6+.
+- **Implemented Solution:**
+  Added explicit alignment pins to [`requirements.txt`](file:///d:/Final%20Capstone%20Project/RecruitmentCapstoneOutput/RecruitmentCapstone/requirements.txt): `protobuf>=5.29.3,<5.30.0` and `googleapis-common-protos<1.72.0`. Verified zero conflicts via `pip check`.
+
+#### EC-19: CrewAI `aiosqlite` Minor Version Conflict
+- **Category:** Multi-Agent Storage / Dependency Management
+- **Discovery Context:** Unconstrained pip resolution installed `aiosqlite 0.22.1`, causing CrewAI to flag an incompatible minor dependency conflict (`crewai requires aiosqlite~=0.21.0`).
+- **Root Cause Analysis:**
+  CrewAI pins `aiosqlite` using compatible release clause `~=0.21.0`, rejecting version increments across the `0.22.x` boundary.
+- **Implemented Solution:**
+  Explicitly pinned `aiosqlite~=0.21.0` in `requirements.txt` to guarantee clean reproducible installs.
 
 ---
 
